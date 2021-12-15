@@ -247,6 +247,7 @@ class EVESequencesBase(Dataset):
         else:
             if config.camera_frame_type == 'full':
                 video_path += '.mp4'
+                output_size = (config.full_size[0], config.full_size[1])
             elif config.camera_frame_type == 'face':
                 video_path += '_face.mp4'
                 output_size = (config.face_size[0], config.face_size[1])
@@ -281,8 +282,8 @@ class EVESequencesBase(Dataset):
             subentry['frame'] = frames
         else:
             ew, eh = config.eyes_size
-            subentry['left_eye_patch'] = frames[:, :, :, ew:]
-            subentry['right_eye_patch'] = frames[:, :, :, :ew]
+            for side in config.sides:
+                subentry[side + '_eye_patch'] = frames
 
         # Pad as necessary with zero value and zero validity
         for key, value in subentry.items():

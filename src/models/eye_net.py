@@ -84,12 +84,13 @@ class EyeNet(nn.Module):
             nn.Linear(num_features, 2, bias=False),
             nn.Tanh(),
         )
-        self.fc_to_pupil = nn.Sequential(
-            nn.Linear(num_features, num_features),
-            nn.SELU(inplace=True),
-            nn.Linear(num_features, 1),
-            nn.ReLU(inplace=True),
-        )
+        if config.eye_net_predict_origin:
+            self.fc_to_origin = nn.Sequential(
+                nn.Linear(num_features, num_features),
+                nn.SELU(inplace=True),
+                nn.Linear(num_features, 3),
+                nn.ReLU(inplace=True),
+            )
 
         # Set gaze layer weights to zero as otherwise this can
         # explode early in training
@@ -137,13 +138,15 @@ class EyeNet(nn.Module):
 
         # Final prediction
         gaze_prediction = half_pi * self.fc_to_gaze(features)
-        pupil_size = self.fc_to_pupil(features)
+        if config.eye_net_predict_origin:
+            gaze_origin = self.fc_to_origin(features)
 
         # For gaze, the range of output values are limited by a tanh and scaling
         output_dict[side + '_g_initial'] = gaze_prediction
 
         # Estimate of pupil size
-        output_dict[side + '_pupil_size'] = pupil_size.reshape(-1)
+        if config.eye_net_predict_origin:
+            output_dict[side + '_gaze_origin'] = gaze_origin
 
         # If network frozen, we're gonna detach gradients here
         if config.eye_net_frozen:

@@ -105,10 +105,10 @@ class EVE(nn.Module):
 
             # Step 1a) From each eye patch, estimate gaze direction and pupil size
             previous_output_dict = (intermediate_dicts[-1] if len(intermediate_dicts) > 0 else None)
-            self.eye_net(sub_input_dict, sub_output_dict, side='left',
-                         previous_output_dict=previous_output_dict)
-            self.eye_net(sub_input_dict, sub_output_dict, side='right',
-                         previous_output_dict=previous_output_dict)
+            for side in config.sides:
+                self.eye_net(sub_input_dict, sub_output_dict, side=side,
+                            previous_output_dict=previous_output_dict)
+
 
             # During training: add random offsets to gaze directions
             if self.training and config.refine_net_do_offset_augmentation:
@@ -118,7 +118,7 @@ class EVE(nn.Module):
                                            heatmap_history=None,
                                            gaze_heatmap_sigma=config.gaze_heatmap_sigma_initial,
                                            history_heatmap_sigma=config.gaze_heatmap_sigma_history)
-                for side in ('left', 'right'):
+                for side in config.sides:
                     sub_output_dict[side + '_g_initial_unaugmented'] = \
                             sub_output_dict[side + '_g_initial']
                     sub_output_dict[side + '_g_initial'] = apply_offset_augmentation(
@@ -187,9 +187,6 @@ class EVE(nn.Module):
             if k.startswith('output_'):
                 output_dict[k] = full_intermediate_dict[k]
 
-        output_dict['left_pupil_size'] = full_intermediate_dict['left_pupil_size']
-        output_dict['right_pupil_size'] = full_intermediate_dict['right_pupil_size']
-
         if config.load_full_frame_for_visualization:
             # Copy over some values manually
             if 'left_g_tobii' in full_input_dict:
@@ -234,22 +231,18 @@ class EVE(nn.Module):
         full_loss = torch.zeros(()).to(device)
 
         # Add all losses for the eye network
-        if 'loss_ang_left_g_initial' in output_dict:
-            full_loss += config.loss_coeff_g_ang_initial * (
-                output_dict['loss_ang_left_g_initial'] +
-                output_dict['loss_ang_right_g_initial']
-            )
-        if 'loss_mse_left_PoG_cm_initial' in output_dict \
-                and config.loss_coeff_PoG_cm_initial > 0.0:
-            full_loss += config.loss_coeff_PoG_cm_initial * (
-                output_dict['loss_mse_left_PoG_cm_initial'] +
-                output_dict['loss_mse_right_PoG_cm_initial']
-            )
-        if 'loss_l1_left_pupil_size' in output_dict:
-            full_loss += config.loss_coeff_pupil_size * (
-                output_dict['loss_l1_left_pupil_size'] +
-                output_dict['loss_l1_right_pupil_size']
-            )
+        for side in config.sides:
+            error_key = 'loss_ang_' + side + '_g_initial'
+            if error_key in output_dict and config.loss_coeff_g_ang_initial > 0.0:
+                full_loss += config.loss_coeff_g_ang_initial * output_dict[error_key]
+            
+            error_key = 'loss_mse_' + side + '_PoG_cm_initial'
+            if error_key in output_dict and config.loss_coeff_PoG_cm_initial > 0.0:
+                full_loss += config.loss_coeff_PoG_cm_initial * output_dict[error_key]
+
+            error_key = 'loss_euc_' + side + '_gaze_origin'
+            if error_key in output_dict and config.loss_coeff_pupil_size > 0.0:
+                full_loss += config.loss_coeff_pupil_size * output_dict[error_key]
 
         # Add all losses for the GazeRefineNet
         if 'loss_mse_PoG_cm_final' in output_dict:
@@ -285,7 +278,7 @@ class EVE(nn.Module):
 
     def calculate_losses_and_metrics(self, input_dict, intermediate_dict, output_dict):
         # Initial estimates of gaze direction and PoG
-        for side in ('left', 'right'):
+        for side in config.sides:
             input_key = side + '_g_tobii'
             interm_key = (side + '_g_initial_unaugmented'
                           if self.training and config.refine_net_do_offset_augmentation
@@ -324,8 +317,16 @@ class EVE(nn.Module):
                     intermediate_dict[interm_key], input_key, input_dict,
                 )
 
+            # Gaze origin
+            input_key = side + '_o'
+            interm_key = side + '_gaze_origin'
+            if interm_key in intermediate_dict and input_key in input_dict:
+                output_dict['loss_euc_' + interm_key] = euclidean_loss(
+                    intermediate_dict[interm_key], input_key, input_dict,
+                )
+
         # Left-right consistency
-        if 'left_PoG_tobii' in input_dict and 'right_PoG_tobii' in input_dict:
+        if 'left_PoG_tobii' in input_dict and 'right_PoG_tobii' in input_dict and 'left_PoG_cm_initial' in intermediate_dict and 'right_PoG_cm_initial' in intermediate_dict:
             intermediate_dict['right_PoG_cm_initial_validity'] = (
                 input_dict['left_PoG_tobii_validity'] &
                 input_dict['right_PoG_tobii_validity']
@@ -444,7 +445,7 @@ class EVE(nn.Module):
         sequence_len = sample_entry.shape[1]
 
         # PoG in mm
-        for side in ('left', 'right'):
+        for side in config.sides:
             if (side + '_PoG_tobii') in full_input_dict:
                 full_input_dict[side + '_PoG_cm_tobii'] = torch.mul(
                     full_input_dict[side + '_PoG_tobii'],
@@ -463,29 +464,32 @@ class EVE(nn.Module):
             kappa_std = config.refine_net_offset_augmentation_sigma
             kappa_std = np.radians(kappa_std)
 
-            # Create systematic noise
-            # This is consistent throughout a given sequence
-            left_kappas = np.random.normal(size=(batch_size, 2), loc=0.0, scale=kappa_std)
-            right_kappas = np.random.normal(size=(batch_size, 2), loc=0.0, scale=kappa_std)
-            kappas = {
-                'left': np.repeat(np.expand_dims(left_kappas, axis=1), sequence_len, axis=1),
-                'right': np.repeat(np.expand_dims(right_kappas, axis=1), sequence_len, axis=1),
-            }
-
-            for side in ('left', 'right'):
-                # Store kappa
-                kappas_side = kappas[side]
-                kappa_tensor = torch.tensor(kappas_side.astype(np.float32)).to(device)
+            for side in config.sides:
+                # Create systematic noise
+                # This is consistent throughout a given sequence
+                kappas = np.random.normal(size=(batch_size, 2), loc=0.0, scale=kappa_std)
+                kappas = np.repeat(np.expand_dims(kappas, axis=1), sequence_len, axis=1)
+                kappa_tensor = torch.tensor(kappas.astype(np.float32)).to(device)
                 full_input_dict[side + '_kappa_fake'] = kappa_tensor
 
         # 3D origin for L/R combined gaze
-        if 'left_o' in full_input_dict:
+        if 'face' in config.sides:
+            if 'face_o' in full_input_dict:
+                full_input_dict['o'] = full_input_dict['face_o']
+                full_input_dict['o_validity'] = full_input_dict['face_o_validity']
+        elif 'left_o' in full_input_dict:
             full_input_dict['o'] = torch.mean(torch.stack([
                 full_input_dict['left_o'], full_input_dict['right_o'],
             ], axis=-1), axis=-1).detach()
             full_input_dict['o_validity'] = full_input_dict['left_o_validity']
 
-        if 'left_PoG_tobii' in full_input_dict:
+        if 'face' in config.sides:
+            if 'face_PoG_tobii' in full_input_dict:
+                full_input_dict['PoG_px_tobii'] = full_input_dict['face_PoG_tobii']
+                full_input_dict['PoG_cm_tobii'] = full_input_dict['face_PoG_cm_tobii']
+                full_input_dict['PoG_px_tobii_validity'] = full_input_dict['face_PoG_tobii_validity']
+                full_input_dict['PoG_cm_tobii_validity'] = full_input_dict['PoG_px_tobii_validity']
+        elif 'left_PoG_tobii' in full_input_dict:
             # Average of left/right PoG values
             full_input_dict['PoG_px_tobii'] = torch.mean(torch.stack([
                 full_input_dict['left_PoG_tobii'],
@@ -551,7 +555,7 @@ class EVE(nn.Module):
             return
 
         # Step 1) Calculate PoG from given gaze
-        for side in ('left', 'right'):
+        for side in config.sides:
             origin = (sub_output_dict[side + '_o']
                       if side + '_o' in sub_output_dict else sub_input_dict[side + '_o'])
             direction = sub_output_dict[side + '_g_' + input_suffix]
@@ -562,14 +566,18 @@ class EVE(nn.Module):
             sub_output_dict[side + '_PoG_px_' + output_suffix] = PoG_px
 
         # Step 1b) Calculate average PoG
-        sub_output_dict['PoG_px_' + output_suffix] = torch.mean(torch.stack([
-            sub_output_dict['left_PoG_px_' + output_suffix],
-            sub_output_dict['right_PoG_px_' + output_suffix],
-        ], axis=-1), axis=-1)
-        sub_output_dict['PoG_cm_' + output_suffix] = torch.mean(torch.stack([
-            sub_output_dict['left_PoG_cm_' + output_suffix],
-            sub_output_dict['right_PoG_cm_' + output_suffix],
-        ], axis=-1), axis=-1)
+        if 'face' in config.sides:
+            sub_output_dict['PoG_px_' + output_suffix] = sub_output_dict['face_PoG_px_' + output_suffix]
+            sub_output_dict['PoG_cm_' + output_suffix] = sub_output_dict['face_PoG_cm_' + output_suffix]
+        else:
+            sub_output_dict['PoG_px_' + output_suffix] = torch.mean(torch.stack([
+                sub_output_dict['left_PoG_px_' + output_suffix],
+                sub_output_dict['right_PoG_px_' + output_suffix],
+            ], axis=-1), axis=-1)
+            sub_output_dict['PoG_cm_' + output_suffix] = torch.mean(torch.stack([
+                sub_output_dict['left_PoG_cm_' + output_suffix],
+                sub_output_dict['right_PoG_cm_' + output_suffix],
+            ], axis=-1), axis=-1)
         sub_output_dict['PoG_mm_' + output_suffix] = \
             10.0 * sub_output_dict['PoG_cm_' + output_suffix]
 

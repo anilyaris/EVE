@@ -37,17 +37,18 @@ class DefaultConfig(object):
     note = ''
 
     # Data sources
-    datasrc_eve = '/path/to/eve/dataset'
+    datasrc_eve = '/cluster/work/hilliges/shared/eve_dataset'
 
     # Data loading
     video_decoder_codec = 'libx264'  # libx264 | nvdec
     assumed_frame_rate = 10  # We will skip frames from source videos accordingly
-    max_sequence_len = 30  # In frames assuming 10Hz
+    max_sequence_len = 1  # In frames assuming 10Hz
+    full_size = [640, 360] #width, height
     face_size = [256, 256]  # width, height
     eyes_size = [128, 128]  # width, height
     screen_size = [128, 72]  # width, height
     actual_screen_size = [1920, 1080]  # DO NOT CHANGE
-    camera_frame_type = 'eyes'  # full | face | eyes
+    camera_frame_type = 'face'  # full | face | eyes
     load_screen_content = False
     load_full_frame_for_visualization = False
 
@@ -55,6 +56,7 @@ class DefaultConfig(object):
     train_stimuli = ['image', 'video', 'wikipedia']
     test_cameras = ['basler', 'webcam_l', 'webcam_c', 'webcam_r']
     test_stimuli = ['image', 'video', 'wikipedia']
+    sides = ['face']
 
     # Inference
     input_path = ''
@@ -64,7 +66,7 @@ class DefaultConfig(object):
     skip_training = False
     fully_reproducible = False  # enable with possible penalty of performance
 
-    batch_size = 16
+    batch_size = 64
     weight_decay = 0.001
     num_epochs = 10.0
 
@@ -85,9 +87,9 @@ class DefaultConfig(object):
     #     'exponential': step function with exponential decay
     #     'cyclic':      spiky down-up-downs (with exponential decay of peaks)
     num_warmup_epochs = 0.0  # No. of epochs to warmup LR from base to target
-    lr_decay_strategy = 'none'
+    lr_decay_strategy = 'exponential'
     lr_decay_factor = 0.5
-    lr_decay_epoch_interval = 0.5
+    lr_decay_epoch_interval = 1
 
     # Gradient Clipping
     do_gradient_clipping = True
@@ -97,15 +99,17 @@ class DefaultConfig(object):
     # Eye gaze network configuration
     eye_net_load_pretrained = False
     eye_net_frozen = False
-    eye_net_use_rnn = True
+    eye_net_use_rnn = False
     eye_net_rnn_type = 'GRU'  # 'RNN' | 'LSTM' | 'GRU'
     eye_net_rnn_num_cells = 1
     eye_net_rnn_num_features = 128
     eye_net_static_num_features = 128
-    eye_net_use_head_pose_input = True
+    eye_net_use_head_pose_input = False
+    eye_net_predict_origin = (camera_frame_type == 'full')
     loss_coeff_PoG_cm_initial = 0.0
     loss_coeff_g_ang_initial = 1.0
     loss_coeff_pupil_size = 1.0
+    loss_coeff_gaze_origin = 1.0
 
     # Conditional refine network configuration
     refine_net_enabled = False
@@ -136,7 +140,7 @@ class DefaultConfig(object):
     test_num_samples = 128
     test_batch_size = 128
     test_data_workers = 0
-    test_every_n_steps = 500
+    test_every_n_steps = 250
     full_test_batch_size = 128
     full_test_data_workers = 4
 
@@ -146,11 +150,11 @@ class DefaultConfig(object):
     # Checkpoints management
     checkpoints_save_every_n_steps = 100
     checkpoints_keep_n = 3
-    resume_from = ''
+    resume_from = '' if eye_net_predict_origin else '/cluster/home/ayaris/EVE/outputs/EVE/211212_131934.c112fb'
 
     # Google Sheets related
-    gsheet_secrets_json_file = ''
-    gsheet_workbook_key = ''
+    gsheet_secrets_json_file = '/cluster/home/ayaris/EVE/src/configs/never-333512-214479b28af3.json'
+    gsheet_workbook_key = '1J_pSUjuGQ_lxCaBr399kdS6sZzLVRfXiiw7_lFLE5Rg' if eye_net_predict_origin else '1ODyvjL1JsnYaeg8eMftavv1u4Na_kbN-JQYuimnAf5U'
 
     # Below lie necessary methods for working configuration tracking
 

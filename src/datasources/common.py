@@ -57,7 +57,7 @@ class VideoReader(object):
         if self.video_path.endswith('_eyes.mp4'):
             self.timestamps_path = video_path.replace('_eyes.mp4', '.timestamps.txt')
         elif self.video_path.endswith('_face.mp4'):
-            self.timestamps_path = video_path.replace('_eyes.mp4', '.timestamps.txt')
+            self.timestamps_path = video_path.replace('_face.mp4', '.timestamps.txt')
         elif self.video_path.endswith('.128x72.mp4'):
             self.timestamps_path = video_path.replace('.128x72.mp4', '.timestamps.txt')
         else:
@@ -123,7 +123,7 @@ class VideoReader(object):
         output_params = {}
         if self.frame_indices is not None:
             # Index picking for range [start_index, end_index)
-            assert(len(self.frame_indices) > 1)
+            assert(len(self.frame_indices) > 0)
             cmd = 'select=\'%s\'' % '+'.join([
                 ('eq(n,%d)' % index)
                 for index in self.frame_indices
