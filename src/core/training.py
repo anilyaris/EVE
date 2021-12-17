@@ -443,6 +443,7 @@ def main_loop_iterator(model, optimizers, train_data, test_data, tensorboard=Non
     model.train()
     current_step = 0
     for current_step in range(initial_step, num_training_steps):
+        print("Step", current_step, "of", num_training_steps)
         current_epoch = (current_step * config.batch_size) / max_dataset_len  # fractional value
         tensorboard.update_current_step(current_step + 1)
         input_data = get_training_batches(train_data)
@@ -467,9 +468,9 @@ def main_loop_iterator(model, optimizers, train_data, test_data, tensorboard=Non
         # Forward pass and yield
         loss_terms = []
         images_to_log_to_tensorboard = {}
-        outputs = model(input_data, **forward_kwargs)
+        outputs = {}#model(input_data, **forward_kwargs)
         yield current_step, loss_terms, outputs, images_to_log_to_tensorboard
-
+        continue
         # There should be as many loss terms as there are optimizers!
         assert len(loss_terms) == len(optimizers)
 

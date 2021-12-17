@@ -66,9 +66,9 @@ class DefaultConfig(object):
     skip_training = False
     fully_reproducible = False  # enable with possible penalty of performance
 
-    batch_size = 64
+    batch_size = 1
     weight_decay = 0.001
-    num_epochs = 10.0
+    num_epochs = 1.0
 
     train_data_workers = 8
 
@@ -150,11 +150,11 @@ class DefaultConfig(object):
     # Checkpoints management
     checkpoints_save_every_n_steps = 100
     checkpoints_keep_n = 3
-    resume_from = '' if eye_net_predict_origin else '/cluster/home/ayaris/EVE/outputs/EVE/211212_131934.c112fb'
+    resume_from = ''# if eye_net_predict_origin else '/cluster/home/ayaris/EVE/outputs/EVE/211212_131934.c112fb'
 
     # Google Sheets related
     gsheet_secrets_json_file = '/cluster/home/ayaris/EVE/src/configs/never-333512-214479b28af3.json'
-    gsheet_workbook_key = '1J_pSUjuGQ_lxCaBr399kdS6sZzLVRfXiiw7_lFLE5Rg' if eye_net_predict_origin else '1ODyvjL1JsnYaeg8eMftavv1u4Na_kbN-JQYuimnAf5U'
+    gsheet_workbook_key = ''#'1J_pSUjuGQ_lxCaBr399kdS6sZzLVRfXiiw7_lFLE5Rg' if eye_net_predict_origin else '1ODyvjL1JsnYaeg8eMftavv1u4Na_kbN-JQYuimnAf5U'
 
     # Below lie necessary methods for working configuration tracking
 

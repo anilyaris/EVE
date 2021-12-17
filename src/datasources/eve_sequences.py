@@ -271,6 +271,20 @@ class EVESequencesBase(Dataset):
             timestamps, frames = VideoReader(video_path, frame_indices=selected_indices,
                                              is_async=False, output_size=output_size).get_frames()
 
+        video_path = video_path.replace("mp4", "frames/")
+        if not os.path.exists(video_path):
+            os.makedirs(video_path)
+        for index in range(len(selected_indices)):
+            write_frame = True
+            for k, v in subentry.items():
+                if "_validity" in k and not v[index]:
+                    write_frame = False
+                    break
+            if write_frame:
+                file_path = video_path + ("%d.png" % selected_indices[index])
+                cv.imwrite(file_path, cv.cvtColor(frames[index], cv.COLOR_RGB2BGR))
+                print(file_path, "saved")
+
         # Collect and return
         subentry['timestamps'] = np.asarray(timestamps, dtype=np.int)
         frames = (
