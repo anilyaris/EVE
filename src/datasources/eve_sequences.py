@@ -275,15 +275,17 @@ class EVESequencesBase(Dataset):
         if not os.path.exists(video_path):
             os.makedirs(video_path)
         for index in range(len(selected_indices)):
-            write_frame = True
-            for k, v in subentry.items():
-                if "_validity" in k and not v[index]:
-                    write_frame = False
-                    break
+            file_path = video_path + ("%d.png" % selected_indices[index])
+            write_frame = not os.path.exists(file_path)
             if write_frame:
-                file_path = video_path + ("%d.png" % selected_indices[index])
-                cv.imwrite(file_path, cv.cvtColor(frames[index], cv.COLOR_RGB2BGR))
-                print(file_path, "saved")
+                for k, v in subentry.items():
+                    if "_validity" in k and not v[index]:
+                        write_frame = False
+                        break
+                if write_frame:
+                    file_path = video_path + ("%d.png" % selected_indices[index])
+                    cv.imwrite(file_path, cv.cvtColor(frames[index], cv.COLOR_RGB2BGR))
+                    print(file_path, "saved")
 
         # Collect and return
         subentry['timestamps'] = np.asarray(timestamps, dtype=np.int)

@@ -125,7 +125,7 @@ def init_datasets(train_specs, test_specs):
         dataset.original_full_dataset = dataset
         dataloader = DataLoader(dataset,
                                 batch_size=config.batch_size,
-                                shuffle=True,
+                                shuffle=False,
                                 drop_last=True,
                                 num_workers=config.train_data_workers,
                                 pin_memory=True,
