@@ -272,8 +272,7 @@ class EVESequencesBase(Dataset):
                                              is_async=False, output_size=output_size).get_frames()
 
         video_path = video_path.replace("mp4", "frames/")
-        if not os.path.exists(video_path):
-            os.makedirs(video_path)
+        os.makedirs(video_path, exist_ok=True)
         for index in range(len(selected_indices)):
             file_path = video_path + ("%d.png" % selected_indices[index])
             write_frame = not os.path.exists(file_path)

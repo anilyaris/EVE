@@ -41,8 +41,8 @@ class DefaultConfig(object):
 
     # Data loading
     video_decoder_codec = 'libx264'  # libx264 | nvdec
-    assumed_frame_rate = 10  # We will skip frames from source videos accordingly
-    max_sequence_len = 1  # In frames assuming 10Hz
+    assumed_frame_rate = 3  # We will skip frames from source videos accordingly
+    max_sequence_len = 4  # In frames assuming 10Hz
     full_size = [640, 360] #width, height
     face_size = [256, 256]  # width, height
     eyes_size = [128, 128]  # width, height
