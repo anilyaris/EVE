@@ -23,6 +23,7 @@ import os
 
 import ffmpeg
 import numpy as np
+import cv2 as cv
 
 from core import DefaultConfig
 
@@ -65,19 +66,27 @@ class VideoReader(object):
         assert(os.path.isfile(self.video_path))
         assert(os.path.isfile(self.timestamps_path))
 
-    def get_frames(self):
+    def get_frames(self, load_from_images=False):
         assert(self.is_async is False)
 
         # Get frames
-        self.preparations()
-        input_params, output_params = self.get_params()
-        buffer, _ = (
-            ffmpeg.input(self.video_path, **input_params)
-            .output('pipe:', format='rawvideo', pix_fmt='rgb24', loglevel="quiet",
-                    **output_params)
-            .run(capture_stdout=True, quiet=True)
-        )
-        frames = np.frombuffer(buffer, np.uint8).reshape(-1, self.height, self.width, 3)
+        self.preparations(load_from_images)
+        if load_from_images:
+            frames = np.empty([len(self.frame_indices), self.output_size[0], self.output_size[1], 3], dtype=np.uint8)
+            for index in range(len(self.frame_indices)):
+                file_path = self.video_path.replace("mp4", "frames/") + ("%d.png" % self.frame_indices[index])
+                if os.path.exists(file_path):
+                    frames[index] = cv.cvtColor(cv.imread(file_path), cv.COLOR_BGR2RGB)
+
+        else:
+            input_params, output_params = self.get_params()
+            buffer, _ = (
+                ffmpeg.input(self.video_path, **input_params)
+                .output('pipe:', format='rawvideo', pix_fmt='rgb24', loglevel="quiet",
+                        **output_params)
+                .run(capture_stdout=True, quiet=True)
+            )
+            frames = np.frombuffer(buffer, np.uint8).reshape(-1, self.height, self.width, 3)
 
         # Get timestamps
         timestamps = self.timestamps
@@ -86,17 +95,18 @@ class VideoReader(object):
 
         return timestamps, frames
 
-    def preparations(self):
-        # Read video file tags
-        probe = ffmpeg.probe(self.video_path)
-        video_stream = next((stream for stream in probe['streams']
-                             if stream['codec_type'] == 'video'), None)
-        self.width = video_stream['width']
-        self.height = video_stream['height']
-        assert self.height != 0
-        assert self.width != 0
-        if self.output_size is not None:
-            self.width, self.height = self.output_size
+    def preparations(self, load_from_images=False):
+        if not load_from_images:
+            # Read video file tags
+            probe = ffmpeg.probe(self.video_path)
+            video_stream = next((stream for stream in probe['streams']
+                                if stream['codec_type'] == 'video'), None)
+            self.width = video_stream['width']
+            self.height = video_stream['height']
+            assert self.height != 0
+            assert self.width != 0
+            if self.output_size is not None:
+                self.width, self.height = self.output_size
 
         # Read timestamps file
         self.timestamps = np.loadtxt(self.timestamps_path).astype(np.int)

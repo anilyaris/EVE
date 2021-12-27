@@ -51,6 +51,7 @@ class DefaultConfig(object):
     camera_frame_type = 'face'  # full | face | eyes
     load_screen_content = False
     load_full_frame_for_visualization = False
+    load_frames_from_files = True
 
     train_cameras = ['basler', 'webcam_l', 'webcam_c', 'webcam_r']
     train_stimuli = ['image', 'video', 'wikipedia']
@@ -66,7 +67,7 @@ class DefaultConfig(object):
     skip_training = False
     fully_reproducible = False  # enable with possible penalty of performance
 
-    batch_size = 1
+    batch_size = 32
     weight_decay = 0.001
     num_epochs = 1.0
 
@@ -150,7 +151,7 @@ class DefaultConfig(object):
     # Checkpoints management
     checkpoints_save_every_n_steps = 100
     checkpoints_keep_n = 3
-    resume_from = ''# if eye_net_predict_origin else '/cluster/home/ayaris/EVE/outputs/EVE/211212_131934.c112fb'
+    resume_from = '' if eye_net_predict_origin else '/cluster/home/ayaris/EVE/outputs/EVE/211226_100707.e6e355'
 
     # Google Sheets related
     gsheet_secrets_json_file = '/cluster/home/ayaris/EVE/src/configs/never-333512-214479b28af3.json'
