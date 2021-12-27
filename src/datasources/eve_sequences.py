@@ -31,6 +31,7 @@ from torch.utils.data import Dataset
 
 from core import DefaultConfig
 from .common import predefined_splits, stimulus_type_from_folder_name, VideoReader
+from models.common import unnormalize
 
 config = DefaultConfig()
 logger = logging.getLogger(__name__)
@@ -59,7 +60,8 @@ class EVESequencesBase(Dataset):
                  types_of_stimuli: List[str] = None,
                  stimulus_name_includes: str = '',
                  live_validation: bool = False,
-                 is_final_test: bool = False):
+                 is_final_test: bool = False,
+                 load_from_images: bool = False):
         if types_of_stimuli is None:
             types_of_stimuli = ['image', 'video', 'wikipedia']
         if cameras_to_use is None:
@@ -73,6 +75,7 @@ class EVESequencesBase(Dataset):
         self.cameras_to_use = cameras_to_use
         self.live_validation = live_validation
         self.is_final_test = is_final_test
+        self.load_from_images = load_from_images
         self.validation_data_cache = {}
 
         # Some sanity checks
@@ -269,7 +272,7 @@ class EVESequencesBase(Dataset):
             frames = frames[selected_indices]
         else:
             timestamps, frames = VideoReader(video_path, frame_indices=selected_indices,
-                                             is_async=False, output_size=output_size).get_frames()
+                                             is_async=False, output_size=output_size).get_frames(self.load_from_images)
 
         # Collect and return
         subentry['timestamps'] = np.asarray(timestamps, dtype=np.int)
@@ -331,6 +334,24 @@ class EVESequencesBase(Dataset):
             for k, a in entry.items()
         ])
 
+        # Unnormalize ground truth gaze if full frame is used
+        if config.camera_frame_type == 'full':
+            for side in config.sides:
+                gaze_key = side + '_g_tobii'
+                R_key = side + '_R'
+                R_exists = R_key in torch_entry
+
+                if gaze_key in torch_entry:
+                    if R_exists:
+                        g = torch_entry[gaze_key]
+                        torch_entry[gaze_key] = unnormalize(g, torch_entry[R_key])
+                    for index in range(len(indices)):
+                        if R_exists:
+                            valid = torch_entry[gaze_key + '_validity'][index].item()
+                            torch_entry[gaze_key + '_validity'][index] = valid and torch_entry[R_key + '_validity'][index].item()                          
+                        else:
+                            torch_entry[gaze_key + '_validity'][index] = False
+
         if self.live_validation:
             self.validation_data_cache[cache_key] = torch_entry
         return torch_entry
@@ -341,6 +362,7 @@ class EVESequences_train(EVESequencesBase):
         super(EVESequences_train, self).__init__(
             dataset_path,
             participants_to_use=predefined_splits['train'],
+            load_from_images=config.load_frames_from_files,
             **kwargs,
         )
 

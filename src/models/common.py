@@ -145,6 +145,13 @@ def calculate_combined_gaze_direction(avg_origin, avg_PoG, head_rotation,
     direction = vector_to_pitchyaw(direction)
     return direction
 
+def unnormalize(gaze, rotation):
+    direction = -pitchyaw_to_vector(gaze)
+    inv_rotation = torch.transpose(rotation, 1, 2)
+    direction = direction.reshape(-1, 3, 1)
+    direction = torch.matmul(inv_rotation, direction)
+    direction = vector_to_pitchyaw(-direction)
+    return direction
 
 def to_screen_coordinates(origin, direction, rotation, reference_dict):
     direction = pitchyaw_to_vector(direction)
