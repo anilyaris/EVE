@@ -116,7 +116,7 @@ for current_step, loss_terms, outputs, images_to_log_to_tensorboard \
 
 # Do final test on full test sets (without subsampling)
 # During training, live validation only occurs on a randomly selected sub-set.
-#training.do_final_full_test(model, test_data, tensorboard)
+training.do_final_full_test(model, test_data, tensorboard)
 
 # Exit without hanging
-#training.cleanup_and_quit(train_data, test_data, tensorboard)
+training.cleanup_and_quit(train_data, test_data, tensorboard)

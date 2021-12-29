@@ -189,12 +189,13 @@ class EVE(nn.Module):
 
         if config.load_full_frame_for_visualization:
             # Copy over some values manually
-            if 'left_g_tobii' in full_input_dict:
-                output_dict['left_g_gt'] = full_input_dict['left_g_tobii']
-                output_dict['PoG_px_gt'] = full_input_dict['PoG_px_tobii']
-                output_dict['PoG_px_gt_validity'] = full_input_dict['PoG_px_tobii_validity']
-            output_dict['left_g_initial'] = full_intermediate_dict['left_g_initial']
-            output_dict['PoG_px_initial'] = full_intermediate_dict['PoG_px_initial']
+            for side in config.sides:
+                if side + '_g_tobii' in full_input_dict:
+                    output_dict[side + '_g_gt'] = full_input_dict[side + '_g_tobii']
+                    output_dict['PoG_px_gt'] = full_input_dict['PoG_px_tobii']
+                    output_dict['PoG_px_gt_validity'] = full_input_dict['PoG_px_tobii_validity']
+                output_dict[side + '_g_initial'] = full_intermediate_dict[side + '_g_initial']
+                output_dict['PoG_px_initial'] = full_intermediate_dict['PoG_px_initial']
             if config.refine_net_enabled:
                 output_dict['g_final'] = full_intermediate_dict['g_final']
                 output_dict['PoG_px_final'] = full_intermediate_dict['PoG_px_final']
@@ -202,7 +203,8 @@ class EVE(nn.Module):
         if self.output_predictions:
             output_dict['timestamps'] = full_input_dict['timestamps']
             output_dict['o'] = full_input_dict['o']
-            output_dict['left_R'] = full_input_dict['left_R']
+            for side in config.sides:
+                output_dict[side + '_R'] = full_input_dict[side + '_R']
             output_dict['head_R'] = full_input_dict['head_R']
             output_dict['g_initial'] = full_intermediate_dict['g_initial']
             output_dict['PoG_px_initial'] = full_intermediate_dict['PoG_px_initial']
@@ -261,7 +263,7 @@ class EVE(nn.Module):
         if create_images:
             if config.load_full_frame_for_visualization:
                 output_dict['both_eye_patch'] = torch.cat([
-                    full_input_dict['right_eye_patch'], full_input_dict['left_eye_patch'],
+                    full_input_dict[side + '_eye_patch'] for side in config.sides
                 ], axis=4)
             if config.load_screen_content:
                 output_dict['screen_frame'] = full_input_dict['screen_frame'][:, -1, :]

@@ -22,6 +22,7 @@ import logging
 import os
 
 import torch
+import numpy as np
 
 from core import DefaultConfig, CheckpointManager
 import core.training as training
@@ -40,7 +41,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 def script_init_common():
     # Set inference-specific overrides
     config.override('fully_reproducible', True)
-    config.override('refine_net_enabled', True)
+    #config.override('refine_net_enabled', True)
     config.override('load_screen_content', True)
     config.override('load_full_frame_for_visualization', True)
 
@@ -95,7 +96,8 @@ def model_setup(model):
         from utils.load_model import load_weights_for_instance
         logger.info('Loading default weights if possible as no --resume-from specified.')
         load_weights_for_instance(model.eye_net)
-        load_weights_for_instance(model.refine_net)
+        if config.refine_net_enabled:
+            load_weights_for_instance(model.refine_net)
 
     return model
 
@@ -125,3 +127,18 @@ def iterator(model, dataloader, **kwargs):
                 if isinstance(v, torch.Tensor)
             }
             yield current_step, inputs_np, outputs_np
+
+def combine_frames(frame_list):
+    oh, ow = 0, 0
+    for frame in frame_list:
+        _oh, _ow, _ = frame.shape
+        oh = max(_oh, oh)
+        ow += _ow
+    combined = np.zeros_like(frame_list[0], shape=(oh, ow, 3))
+    w_start = 0
+    for frame in frame_list:
+        h, w, _ = frame.shape
+        dh = (oh - h) // 2
+        combined[dh:dh+h, w_start:w_start+w, :] = frame
+        w_start += w
+    return combined

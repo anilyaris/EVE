@@ -43,7 +43,7 @@ class DefaultConfig(object):
     video_decoder_codec = 'libx264'  # libx264 | nvdec
     assumed_frame_rate = 3  # We will skip frames from source videos accordingly
     max_sequence_len = 4  # In frames assuming 10Hz
-    full_size = [640, 360] #width, height
+    full_size = [640, 360] # width, height
     face_size = [256, 256]  # width, height
     eyes_size = [128, 128]  # width, height
     screen_size = [128, 72]  # width, height
@@ -51,7 +51,9 @@ class DefaultConfig(object):
     camera_frame_type = 'face'  # full | face | eyes
     load_screen_content = False
     load_full_frame_for_visualization = False
-    load_frames_from_files = True
+    load_frames_from_files = False
+    save_frames = False
+    load_eyes_separately = camera_frame_type != 'eyes' and not load_frames_from_files
 
     train_cameras = ['basler', 'webcam_l', 'webcam_c', 'webcam_r']
     train_stimuli = ['image', 'video', 'wikipedia']
@@ -60,8 +62,8 @@ class DefaultConfig(object):
     sides = ['face']
 
     # Inference
-    input_path = ''
-    output_path = ''
+    input_path = '' if load_frames_from_files else datasrc_eve + '/val01/step008_image_MIT-i1086742403/basler.mp4'
+    output_path = ''  if load_frames_from_files else input_path + '_inference.mp4'
 
     # Training
     skip_training = False

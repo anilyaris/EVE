@@ -274,20 +274,29 @@ class EVESequencesBase(Dataset):
             timestamps, frames = VideoReader(video_path, frame_indices=selected_indices,
                                              is_async=False, output_size=output_size).get_frames(self.load_from_images)
 
-        video_path = video_path.replace("mp4", "frames/")
-        os.makedirs(video_path, exist_ok=True)
-        for index in range(len(selected_indices)):
-            file_path = video_path + ("%d.png" % selected_indices[index])
-            write_frame = not os.path.exists(file_path)
-            if write_frame:
-                for k, v in subentry.items():
-                    if "_validity" in k and not v[index]:
-                        write_frame = False
-                        break
+        if config.save_frames:
+            video_path = video_path.replace("mp4", "frames/")
+            os.makedirs(video_path, exist_ok=True)
+            for index in range(len(selected_indices)):
+                file_path = video_path + ("%d.png" % selected_indices[index])
+                write_frame = not os.path.exists(file_path)
                 if write_frame:
-                    file_path = video_path + ("%d.png" % selected_indices[index])
-                    cv.imwrite(file_path, cv.cvtColor(frames[index], cv.COLOR_RGB2BGR))
-                    print(file_path, "saved")
+                    for k, v in subentry.items():
+                        if "_validity" in k and not v[index]:
+                            write_frame = False
+                            break
+                    if write_frame:
+                        file_path = video_path + ("%d.png" % selected_indices[index])
+                        cv.imwrite(file_path, cv.cvtColor(frames[index], cv.COLOR_RGB2BGR))
+                        print(file_path, "saved")
+
+        if config.load_eyes_separately and source != 'screen':
+            video_path = '%s/%s_eyes.mp4' % (path, source)
+            output_size = (2*config.eyes_size[0], config.eyes_size[1])
+            _, eyes = VideoReader(video_path, frame_indices=selected_indices,
+                                             is_async=False, output_size=output_size).get_frames()
+           
+            subentry['eyes'] = self.preprocess_frames(eyes)
 
         # Collect and return
         subentry['timestamps'] = np.asarray(timestamps, dtype=np.int)
