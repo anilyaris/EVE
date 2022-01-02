@@ -558,8 +558,9 @@ class EVE(nn.Module):
 
         # Step 1) Calculate PoG from given gaze
         for side in config.sides:
-            origin = (sub_output_dict[side + '_o']
-                      if side + '_o' in sub_output_dict else sub_input_dict[side + '_o'])
+            origin = (sub_output_dict[side + '_gaze_origin']
+                      if side + '_gaze_origin' in sub_output_dict else (sub_output_dict[side + '_o']
+                      if side + '_o' in sub_output_dict else sub_input_dict[side + '_o']))
             direction = sub_output_dict[side + '_g_' + input_suffix]
             rotation = (sub_output_dict[side + '_R']
                         if side + '_R' in sub_output_dict else sub_input_dict[side + '_R'])

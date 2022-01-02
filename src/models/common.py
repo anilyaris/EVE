@@ -159,10 +159,11 @@ def to_screen_coordinates(origin, direction, rotation, reference_dict):
     # Negate gaze vector back (to camera perspective)
     direction = -direction
 
-    # De-rotate gaze vector
-    inv_rotation = torch.transpose(rotation, 1, 2)
-    direction = direction.reshape(-1, 3, 1)
-    direction = torch.matmul(inv_rotation, direction)
+    # De-rotate gaze vector if normalized
+    if config.camera_frame_type != 'full':
+        inv_rotation = torch.transpose(rotation, 1, 2)
+        direction = direction.reshape(-1, 3, 1)
+        direction = torch.matmul(inv_rotation, direction)
 
     # Transform values
     inv_camera_transformation = reference_dict['inv_camera_transformation']
