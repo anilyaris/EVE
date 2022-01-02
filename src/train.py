@@ -61,7 +61,6 @@ model, optimizers, tensorboard = training.setup_common(model, optimizers)
 # Training
 for current_step, loss_terms, outputs, images_to_log_to_tensorboard \
         in training.main_loop_iterator(model, optimizers, train_data, test_data, tensorboard):
-    continue
     # NOTE: If we fill in index i, it would pick the optimizer at index i.
     #       In this case, there is only one optimizer, and one variant of the full loss.
     loss_terms.append(outputs['full_loss'])

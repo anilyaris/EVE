@@ -125,7 +125,7 @@ def init_datasets(train_specs, test_specs):
         dataset.original_full_dataset = dataset
         dataloader = DataLoader(dataset,
                                 batch_size=config.batch_size,
-                                shuffle=False,
+                                shuffle=True,
                                 drop_last=True,
                                 num_workers=config.train_data_workers,
                                 pin_memory=True,
@@ -468,9 +468,8 @@ def main_loop_iterator(model, optimizers, train_data, test_data, tensorboard=Non
         # Forward pass and yield
         loss_terms = []
         images_to_log_to_tensorboard = {}
-        outputs = {}#model(input_data, **forward_kwargs)
+        outputs = model(input_data, **forward_kwargs)
         yield current_step, loss_terms, outputs, images_to_log_to_tensorboard
-        continue
         # There should be as many loss terms as there are optimizers!
         assert len(loss_terms) == len(optimizers)
 
