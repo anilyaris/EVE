@@ -443,7 +443,7 @@ def main_loop_iterator(model, optimizers, train_data, test_data, tensorboard=Non
     model.train()
     current_step = 0
     for current_step in range(initial_step, num_training_steps):
-        print("Step", current_step, "of", num_training_steps)
+        #print("Step", current_step, "of", num_training_steps)
         current_epoch = (current_step * config.batch_size) / max_dataset_len  # fractional value
         tensorboard.update_current_step(current_step + 1)
         input_data = get_training_batches(train_data)

@@ -72,7 +72,7 @@ class VideoReader(object):
         # Get frames
         self.preparations(load_from_images)
         if load_from_images:
-            frames = np.empty([len(self.frame_indices), self.output_size[0], self.output_size[1], 3], dtype=np.uint8)
+            frames = np.empty([len(self.frame_indices), self.height, self.width, 3], dtype=np.uint8)
             for index in range(len(self.frame_indices)):
                 file_path = self.video_path.replace("mp4", "frames/") + ("%d.png" % self.frame_indices[index])
                 if os.path.exists(file_path):
@@ -105,8 +105,8 @@ class VideoReader(object):
             self.height = video_stream['height']
             assert self.height != 0
             assert self.width != 0
-            if self.output_size is not None:
-                self.width, self.height = self.output_size
+        if self.output_size is not None:
+            self.width, self.height = self.output_size
 
         # Read timestamps file
         self.timestamps = np.loadtxt(self.timestamps_path).astype(np.int)
